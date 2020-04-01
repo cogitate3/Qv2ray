@@ -3,6 +3,7 @@
 #include "components/plugins/QvPluginHost.hpp"
 #include "components/plugins/toolbar/QvToolbar.hpp"
 #include "components/proxy/QvProxyConfigurator.hpp"
+#include "components/update/UpdateChecker.hpp"
 #include "core/settings/SettingsBackend.hpp"
 #include "ui/editors/w_JsonEditor.hpp"
 #include "ui/editors/w_OutboundEditor.hpp"
@@ -24,7 +25,10 @@
 #include <QMenu>
 #include <QStandardItemModel>
 #include <QUrl>
-#include <QVersionNumber>
+
+#ifdef Q_OS_MAC
+    #include <ApplicationServices/ApplicationServices.h>
+#endif
 
 #define TRAY_TOOLTIP_PREFIX "Qv2ray " QV2RAY_VERSION_STRING
 #define CheckCurrentWidget                                                                                                                      \
@@ -61,6 +65,9 @@ void MainWindow::UpdateColorScheme()
     action_RCM_Duplicate->setIcon(QICON_R("duplicate.png"));
     action_RCM_Delete->setIcon(QICON_R("delete.png"));
     action_RCM_ClearUsage->setIcon(QICON_R("delete.png"));
+    //
+    clearChartBtn->setIcon(QICON_R("delete.png"));
+    clearlogButton->setIcon(QICON_R("delete.png"));
     //
     locateBtn->setIcon(QICON_R("locate.png"));
     sortBtn->setIcon(QICON_R("sort.png"));
@@ -189,7 +196,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(tray_action_Restart, &QAction::triggered, ConnectionManager, &QvConfigHandler::RestartConnection);
     connect(tray_action_Quit, &QAction::triggered, this, &MainWindow::on_actionExit_triggered);
     connect(tray_action_SetSystemProxy, &QAction::triggered, this, &MainWindow::MWSetSystemProxy);
-    connect(tray_action_ClearSystemProxy, &QAction::triggered, &ClearSystemProxy);
+    connect(tray_action_ClearSystemProxy, &QAction::triggered, this, &MainWindow::MWClearSystemProxy);
     connect(&hTray, &QSystemTrayIcon::activated, this, &MainWindow::on_activatedTray);
     //
     // Actions for right click the log text browser
@@ -287,12 +294,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     if (needShowWindow)
         this->show();
 
-#ifndef DISABLE_AUTO_UPDATE
-    requestHelper = new QvHttpRequestHelper(this);
-    connect(requestHelper, &QvHttpRequestHelper::httpRequestFinished, this, &MainWindow::VersionUpdate);
-    requestHelper->get("https://api.github.com/repos/Qv2ray/Qv2ray/releases/latest");
-#endif
-
     if (StartupOption.enableToolbarPlguin)
     {
         LOG(MODULE_UI, "Plugin daemon is enabled.")
@@ -308,6 +309,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     //
     splitter->setSizes(QList<int>() << 100 << 300);
     qvLogTimerId = startTimer(1000);
+    //
+    UpdateChecker.CheckUpdate();
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -340,7 +343,25 @@ void MainWindow::keyPressEvent(QKeyEvent *e)
                 connectionListWidget->expandItem(connectionListWidget->currentItem());
             }
         }
-        widget->keyPressEvent(e);
+        else if (e->key() == Qt::Key_F2)
+        {
+            widget->BeginRename();
+        }
+    }
+
+    if (e->key() == Qt::Key_Escape)
+    {
+        auto widget = GetItemWidget(connectionListWidget->currentItem());
+        // Check if this key was accpted by the ConnectionItemWidget
+        if (widget && widget->IsRenaming())
+        {
+            widget->CancelRename();
+            return;
+        }
+        else if (this->isActiveWindow())
+        {
+            this->close();
+        }
     }
 }
 
@@ -366,48 +387,6 @@ void MainWindow::on_action_StartThis_triggered()
     }
 }
 
-#ifndef DISABLE_AUTO_UPDATE
-void MainWindow::VersionUpdate(QByteArray &data)
-{
-    // Version update handler.
-    QJsonObject root = JsonFromString(QString(data));
-    //
-    QVersionNumber newVersion = QVersionNumber::fromString(root["tag_name"].toString("v").remove(0, 1));
-    QVersionNumber currentVersion = QVersionNumber::fromString(QString(QV2RAY_VERSION_STRING).remove(0, 1));
-    QVersionNumber ignoredVersion = QVersionNumber::fromString(GlobalConfig.ignoredVersion);
-    LOG(MODULE_UPDATE, "Received update info, Latest: " + newVersion.toString() + " Current: " + currentVersion.toString() +
-                           " Ignored: " + ignoredVersion.toString())
-
-    // If the version is newer than us.
-    // And new version is newer than the ignored version.
-    if (newVersion > currentVersion && newVersion > ignoredVersion)
-    {
-        LOG(MODULE_UPDATE, "New version detected.")
-        auto link = root["html_url"].toString("");
-        auto result = QvMessageBoxAsk(this, tr("Update"),
-                                      tr("Found a new version: ") +                 //
-                                          root["tag_name"].toString("") + NEWLINE + //
-                                          root["name"].toString("") +               //
-                                          NEWLINE "------------" NEWLINE +          //
-                                          root["body"].toString("") +               //
-                                          NEWLINE "------------" NEWLINE +          //
-                                          tr("Download Link: ") + link,
-                                      QMessageBox::Ignore);
-
-        if (result == QMessageBox::Yes)
-        {
-            QDesktopServices::openUrl(QUrl::fromUserInput(link));
-        }
-        else if (result == QMessageBox::Ignore)
-        {
-            // Set and save ingored version.
-            GlobalConfig.ignoredVersion = newVersion.toString();
-            SaveGlobalSettings();
-        }
-    }
-}
-#endif
-
 MainWindow::~MainWindow()
 {
     hTray.hide();
@@ -415,6 +394,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+#ifdef Q_OS_MAC
+    ProcessSerialNumber psn = { 0, kCurrentProcess };
+    TransformProcessType(&psn, kProcessTransformToUIElementApplication);
+#endif
     this->hide();
     tray_action_ShowHide->setText(tr("Show"));
     event->ignore();
@@ -453,10 +436,18 @@ void MainWindow::ToggleVisibility()
         QThread::msleep(20);
         SetWindowPos(HWND(this->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 #endif
+#ifdef Q_OS_MAC
+        ProcessSerialNumber psn = { 0, kCurrentProcess };
+        TransformProcessType(&psn, kProcessTransformToForegroundApplication);
+#endif
         tray_action_ShowHide->setText(tr("Hide"));
     }
     else
     {
+#ifdef Q_OS_MAC
+        ProcessSerialNumber psn = { 0, kCurrentProcess };
+        TransformProcessType(&psn, kProcessTransformToUIElementApplication);
+#endif
         this->hide();
         tray_action_ShowHide->setText(tr("Show"));
     }
@@ -535,18 +526,7 @@ void MainWindow::on_action_RCM_DeleteThese_triggered()
 void MainWindow::on_importConfigButton_clicked()
 {
     ImportConfigWindow w(this);
-    auto configs = w.OpenImport();
-    if (!configs.isEmpty())
-    {
-        for (auto conf : configs)
-        {
-            auto name = configs.key(conf, "");
-
-            if (name.isEmpty())
-                continue;
-            ConnectionManager->CreateConnection(name, DefaultGroupId, conf);
-        }
-    }
+    w.ImportConnection();
 }
 
 void MainWindow::on_action_RCM_EditAsComplex_triggered()

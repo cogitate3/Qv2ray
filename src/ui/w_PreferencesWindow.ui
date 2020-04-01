@@ -1586,14 +1586,14 @@
             <item row="4" column="0">
              <widget class="QLabel" name="label_29">
               <property name="text">
-               <string>License:</string>
+               <string>License</string>
               </property>
              </widget>
             </item>
             <item row="3" column="0">
              <widget class="QLabel" name="label_27">
               <property name="text">
-               <string>Official Repo:</string>
+               <string>Official Repo</string>
               </property>
              </widget>
             </item>
@@ -1649,7 +1649,7 @@
             <item row="0" column="0">
              <widget class="QLabel" name="label_26">
               <property name="text">
-               <string>Built Time:</string>
+               <string>Built Time</string>
               </property>
              </widget>
             </item>
@@ -1710,48 +1710,65 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_10">
-            <item>
-             <widget class="QLabel" name="label_23">
-              <property name="text">
-               <string>Ignore Next Version</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="cancelIgnoreVersionBtn">
-              <property name="text">
-               <string>Cancel</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="ignoredNextVersion">
-              <property name="cursor">
-               <cursorShape>IBeamCursor</cursorShape>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="textInteractionFlags">
-               <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_4">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
+           <widget class="QGroupBox" name="updateSettingsGroupBox">
+            <property name="title">
+             <string>Update Settings</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_5">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_81">
+               <property name="text">
+                <string>Update Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_23">
+               <property name="text">
+                <string>Ignore Next Version</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="0,1">
+               <item>
+                <widget class="QPushButton" name="cancelIgnoreVersionBtn">
+                 <property name="text">
+                  <string>Cancel</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="ignoredNextVersion">
+                 <property name="cursor">
+                  <cursorShape>IBeamCursor</cursorShape>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="textInteractionFlags">
+                  <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="updateChannelCombo">
+               <item>
+                <property name="text">
+                 <string>Stable Release</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Testing</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </widget>
           </item>
           <item>
            <widget class="QPushButton" name="aboutQt">
@@ -1792,15 +1809,19 @@ p, li { white-space: pre-wrap; }
   <tabstop>darkTrayCB</tabstop>
   <tabstop>themeCombo</tabstop>
   <tabstop>languageComboBox</tabstop>
+  <tabstop>startWithLoginCB</tabstop>
+  <tabstop>tProxyCheckBox</tabstop>
   <tabstop>maxLogLinesSB</tabstop>
-  <tabstop>logLevelComboBox</tabstop>
   <tabstop>autoStartSubsCombo</tabstop>
   <tabstop>autoStartConnCombo</tabstop>
+  <tabstop>logLevelComboBox</tabstop>
   <tabstop>vCorePathTxt</tabstop>
   <tabstop>selectVCoreBtn</tabstop>
   <tabstop>vCoreAssetsPathTxt</tabstop>
   <tabstop>selectVAssetBtn</tabstop>
   <tabstop>checkVCoreSettings</tabstop>
+  <tabstop>enableAPI</tabstop>
+  <tabstop>statsPortBox</tabstop>
   <tabstop>scrollArea_2</tabstop>
   <tabstop>listenIPTxt</tabstop>
   <tabstop>setSysProxyCB</tabstop>
@@ -1816,9 +1837,22 @@ p, li { white-space: pre-wrap; }
   <tabstop>httpAuthCB</tabstop>
   <tabstop>httpAuthUsernameTxt</tabstop>
   <tabstop>httpAuthPasswordTxt</tabstop>
+  <tabstop>tProxyGroupBox</tabstop>
+  <tabstop>checkBox</tabstop>
+  <tabstop>lineEdit</tabstop>
+  <tabstop>spinBox</tabstop>
+  <tabstop>checkBox_2</tabstop>
+  <tabstop>checkBox_3</tabstop>
+  <tabstop>checkBox_4</tabstop>
+  <tabstop>groupBox_2</tabstop>
+  <tabstop>lineEdit_2</tabstop>
+  <tabstop>checkBox_5</tabstop>
+  <tabstop>comboBox_2</tabstop>
+  <tabstop>spinBox_2</tabstop>
   <tabstop>proxyDefaultCb</tabstop>
   <tabstop>bypassCNCb</tabstop>
   <tabstop>localDNSCb</tabstop>
+  <tabstop>DNSListTxt</tabstop>
   <tabstop>fpGroupBox</tabstop>
   <tabstop>fpTypeCombo</tabstop>
   <tabstop>fpAddressTx</tabstop>
@@ -1846,6 +1880,7 @@ p, li { white-space: pre-wrap; }
   <tabstop>chooseColorBtn</tabstop>
   <tabstop>applyNSBarSettingsBtn</tabstop>
   <tabstop>textBrowser</tabstop>
+  <tabstop>updateChannelCombo</tabstop>
   <tabstop>cancelIgnoreVersionBtn</tabstop>
   <tabstop>aboutQt</tabstop>
  </tabstops>
