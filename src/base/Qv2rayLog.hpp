@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <QString>
-using namespace std;
 
 /*
  * Tiny log module.
@@ -18,7 +17,7 @@ namespace Qv2ray::base
 #define QV2RAY_LOG_NORMAL 0
 #define QV2RAY_LOG_DEBUG 1
 
-#define __LOG_IMPL(LEVEL, MODULE, MSG) __QV2RAY_LOG_FUNC__(LEVEL, Q_FUNC_INFO, __LINE__, MODULE, MSG);
+#define __LOG_IMPL(LEVEL, MODULE, MSG) ::Qv2ray::base::__QV2RAY_LOG_FUNC__(LEVEL, Q_FUNC_INFO, __LINE__, MODULE, MSG);
 
 #define LOG(MODULE, MSG) __LOG_IMPL(QV2RAY_LOG_NORMAL, (MODULE), (MSG));
 #define DEBUG(MODULE, MSG) __LOG_IMPL(QV2RAY_LOG_DEBUG, (MODULE), (MSG));
@@ -41,6 +40,7 @@ const inline QString MODULE_FILEIO = "COMMON-FILEIO";
 //
 const inline QString MODULE_PROXY = "COMPONENT-PROXY";
 const inline QString MODULE_UPDATE = "COMPONENT-UPDATE";
-const inline QString MODULE_PLUGIN = "COMPONENT-PLUGIN";
+const inline QString MODULE_PLUGINHOST = "COMPONENT-PLUGINHOST";
+const inline QString MODULE_PLUGINCLIENT = "PLUGIN-CLIENT";
 // ================================================================
 const inline QString MODULE_CORE_HANDLER = "QV2RAY-CORE";

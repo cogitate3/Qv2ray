@@ -125,7 +125,7 @@ if(QV2RAY_ZXING_PROVIDER STREQUAL "module")
         ${ZXING_DIR}/src/pdf417/PDFScanningDecoder.cpp
         ${ZXING_DIR}/src/pdf417/PDFHighLevelEncoder.cpp
         ${ZXING_DIR}/src/pdf417/PDFModulusPoly.cpp
-    )
+        )
     set(ZXING_INCLUDE_PATH
         ${ZXING_DIR}/src
         ${ZXING_DIR}/src/aztec
@@ -136,30 +136,18 @@ if(QV2RAY_ZXING_PROVIDER STREQUAL "module")
         ${ZXING_DIR}/src/pdf417
         ${ZXING_DIR}/src/qrcode
         ${ZXING_DIR}/src/textcodec
-    )
+        )
+    set(ZXING_LIBRARY qv2ray-zxing)
+    add_library(${ZXING_LIBRARY} STATIC
+        ${ZXING_SOURCES}
+        )
+    target_include_directories(${ZXING_LIBRARY} PUBLIC
+        ${ZXING_INCLUDE_PATH}
+        )
 elseif(QV2RAY_ZXING_PROVIDER STREQUAL "package")
-    find_package(ZXing REQUIRED CONFIG)
-    set(ZXING_LIBRARY ZXing::Core)
-    find_path(ZXING_INCLUDE_PATH 
-            NAMES
-                BarcodeFormat.h
-                AZDecoder.h
-                DMBitMatrixParser.h
-                MCBitMatrixParser.h
-                ODCodabarReader.h
-                PDFBarcodeValue.h
-                QRAlignmentPattern.h
-                Big5MapTable.h
-                ODRSSDataCharacter.h
-            PATH_SUFFIXES
-                ZXing
-                ZXing/aztec
-                ZXing/datamatrix
-                ZXing/maxicode
-                ZXing/oned
-                ZXing/oned/rss
-                ZXing/pdf417
-                ZXing/qrcode
-                ZXing/textcodec
-    )
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(ZXING REQUIRED zxing)
+    #set(ZXING_LIBRARY ${ZXING_LIBRARIES})
+    set(ZXING_LIBRARY ZXing)
+    set(ZXING_INCLUDE_PATH ${ZXING_INCLUDE_DIRS})
 endif()

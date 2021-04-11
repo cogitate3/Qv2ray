@@ -32,5 +32,11 @@
         <file>assets/icons/ui_light/locate.png</file>
         <file>assets/icons/ui_dark/sort.png</file>
         <file>assets/icons/ui_light/sort.png</file>
+        <file>assets/icons/ui_dark/tray-connected.png</file>
+        <file>assets/icons/ui_dark/tray-systemproxy.png</file>
+        <file>assets/icons/ui_light/tray-connected.png</file>
+        <file>assets/icons/ui_light/tray-systemproxy.png</file>
+        <file>assets/icons/ui_light/arrow-up.svg</file>
+        <file>assets/icons/ui_dark/arrow-up.svg</file>
     </qresource>
 </RCC>

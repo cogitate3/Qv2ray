@@ -1,150 +1,107 @@
-﻿#include "HTTPRequestHelper.hpp"
+#include "HTTPRequestHelper.hpp"
 
 #include "base/Qv2rayBase.hpp"
 
 #include <QByteArray>
 #include <QNetworkProxy>
 
-namespace Qv2ray::common
+namespace Qv2ray::common::network
 {
-    QvHttpRequestHelper::QvHttpRequestHelper(QObject *parent) : QObject(parent), reply()
-    {
-    }
-
-    QvHttpRequestHelper::~QvHttpRequestHelper()
-    {
-        accessManager.disconnect();
-    }
-
-    bool QvHttpRequestHelper::setUrl(const QString &url)
-    {
-        QUrl qUrl = QUrl(url);
-
-        if (!qUrl.isValid())
-        {
-            LOG(MODULE_NETWORK, "Provided URL is invalid: " + url)
-            return false;
-        }
-
-        request.setUrl(qUrl);
-        return true;
-    }
-
-    void QvHttpRequestHelper::setHeader(const QByteArray &key, const QByteArray &value)
+    void NetworkRequestHelper::setHeader(QNetworkRequest &request, const QByteArray &key, const QByteArray &value)
     {
         DEBUG(MODULE_NETWORK, "Adding HTTP request header: " + key + ":" + value)
         request.setRawHeader(key, value);
     }
 
-    QByteArray QvHttpRequestHelper::syncget(const QString &url, bool useProxy)
+    void NetworkRequestHelper::setAccessManagerAttributes(QNetworkRequest &request, QNetworkAccessManager &accessManager)
     {
-        this->setUrl(url);
-
-        if (useProxy)
+        switch (GlobalConfig.networkConfig.proxyType)
         {
-            auto proxy = QNetworkProxyFactory::systemProxyForQuery();
-            accessManager.setProxy(proxy.first());
-            LOG(MODULE_NETWORK, "Sync get is using system proxy settings")
+            case Qv2rayConfig_Network::QVPROXY_NONE:
+            {
+                DEBUG(MODULE_NETWORK, "Get without proxy.")
+                accessManager.setProxy(QNetworkProxy(QNetworkProxy::ProxyType::NoProxy));
+                break;
+            }
+            case Qv2rayConfig_Network::QVPROXY_SYSTEM:
+            {
+                accessManager.setProxy(QNetworkProxyFactory::systemProxyForQuery().first());
+                break;
+            }
+            case Qv2rayConfig_Network::QVPROXY_CUSTOM:
+            {
+                QNetworkProxy p{
+                    GlobalConfig.networkConfig.type == "http" ? QNetworkProxy::HttpProxy : QNetworkProxy::Socks5Proxy, //
+                    GlobalConfig.networkConfig.address,                                                                //
+                    quint16(GlobalConfig.networkConfig.port)                                                           //
+                };
+                accessManager.setProxy(p);
+                break;
+            }
+            default: Q_UNREACHABLE();
         }
-        else
+
+        if (accessManager.proxy().type() == QNetworkProxy::Socks5Proxy)
         {
-            accessManager.setProxy(QNetworkProxy(QNetworkProxy::ProxyType::NoProxy));
+            DEBUG(MODULE_NETWORK, "Adding HostNameLookupCapability to proxy.")
+            accessManager.proxy().setCapabilities(accessManager.proxy().capabilities() | QNetworkProxy::HostNameLookupCapability);
         }
 
         request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-        request.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
-        request.setHeader(QNetworkRequest::KnownHeaders::UserAgentHeader, "Mozilla/5.0 (rv:71.0) Gecko/20100101 Firefox/71.0");
-        reply = accessManager.get(request);
-        connect(reply, &QNetworkReply::finished, this, &QvHttpRequestHelper::onRequestFinished_p);
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        // request.setAttribute(QNetworkRequest::Http2AllowedAttribute, true);
+#else
+        // request.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
+#endif
+
+        auto ua = GlobalConfig.networkConfig.userAgent;
+        ua.replace("$VERSION", QV2RAY_VERSION_STRING);
+        request.setHeader(QNetworkRequest::KnownHeaders::UserAgentHeader, ua);
+    }
+
+    QByteArray NetworkRequestHelper::HttpGet(const QUrl &url)
+    {
+        QNetworkRequest request;
+        QNetworkAccessManager accessManager;
+        request.setUrl(url);
+        setAccessManagerAttributes(request, accessManager);
+        auto _reply = accessManager.get(request);
         //
-        QEventLoop loop;
-        connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-        loop.exec();
+        {
+            QEventLoop loop;
+            QObject::connect(&accessManager, &QNetworkAccessManager::finished, &loop, &QEventLoop::quit);
+            loop.exec();
+        }
+        //
         // Data or timeout?
-        auto data = reply->readAll();
+        LOG(MODULE_NETWORK, _reply->errorString());
+        auto data = _reply->readAll();
         return data;
     }
 
-    void QvHttpRequestHelper::get(const QString &url)
+    void NetworkRequestHelper::AsyncHttpGet(const QString &url, std::function<void(const QByteArray &)> funcPtr)
     {
-        this->setUrl(url);
-        //    request.setRawHeader("Content-Type",
-        //    "application/x-www-form-urlencoded");
-        reply = accessManager.get(request);
-        connect(reply, &QNetworkReply::finished, this, &QvHttpRequestHelper::onRequestFinished_p);
-        connect(reply, &QNetworkReply::readyRead, this, &QvHttpRequestHelper::onReadyRead);
+        QNetworkRequest request;
+        request.setUrl(url);
+        setAccessManagerAttributes(request, accessManager);
+        auto reply = accessManager.get(request);
+        QObject::connect(reply, &QNetworkReply::finished, [=]() {
+            {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+                bool h2Used = reply->attribute(QNetworkRequest::Http2WasUsedAttribute).toBool();
+#else
+                bool h2Used = reply->attribute(QNetworkRequest::HTTP2WasUsedAttribute).toBool();
+#endif
+                if (h2Used)
+                    DEBUG(MODULE_NETWORK, "HTTP/2 was used.")
+
+                if (reply->error() != QNetworkReply::NoError)
+                    LOG(MODULE_NETWORK, "Network error: " + QString(QMetaEnum::fromType<QNetworkReply::NetworkError>().key(reply->error())))
+
+                funcPtr(reply->readAll());
+            }
+        });
     }
 
-    // void QvHttpRequestHelper::post(const QString &url, const QByteArray
-    // &data)
-    //{
-    //    this->setUrl(url);
-    //    request.setRawHeader("Content-Type", "application/json");
-    //    reply = accessManager.post(request, data);
-    //    connect(reply, &QNetworkReply::finished, this,
-    //    &QvHttpRequestHelper::onRequestFinished); connect(reply,
-    //    &QNetworkReply::readyRead, this, &QvHttpRequestHelper::onReadyRead);
-    //}
-
-    //    void QvHttpRequestHelper::put(const QString &url, const QByteArray
-    //    &data)
-    //    {
-    //        this->setUrl(url);
-    //        request.setRawHeader("Content-Type", "application/json");
-    //        reply = accessManager.put(request, data);
-    //        connect(reply, &QNetworkReply::finished, this,
-    //        &QvHttpRequestHelper::onRequestFinished); connect(reply,
-    //        &QNetworkReply::readyRead, this,
-    //        &QvHttpRequestHelper::onReadyRead);
-    //    }
-
-    //    void QvHttpRequestHelper::del(const QString &url)
-    //    {
-    //        this->setUrl(url);
-    //        request.setRawHeader("Content-Type", "application/json");
-    //        reply = accessManager.deleteResource(request);
-    //        connect(reply, &QNetworkReply::finished, this,
-    //        &QvHttpRequestHelper::onRequestFinished); connect(reply,
-    //        &QNetworkReply::readyRead, this,
-    //        &QvHttpRequestHelper::onReadyRead);
-    //    }
-
-    //    void QvHttpRequestHelper::login(const QString &url, const QByteArray
-    //    &data)
-    //    {
-    //        this->setUrl(url);
-    //        request.setRawHeader("Content-Type",
-    //        "application/x-www-form-urlencoded"); reply =
-    //        accessManager.post(request, data); connect(reply,
-    //        &QNetworkReply::finished, this,
-    //        &QvHttpRequestHelper::onRequestFinished); connect(reply,
-    //        &QNetworkReply::readyRead, this,
-    //        &QvHttpRequestHelper::onReadyRead);
-    //    }
-
-    void QvHttpRequestHelper::onRequestFinished_p()
-    {
-        if (reply->attribute(QNetworkRequest::HTTP2WasUsedAttribute).toBool())
-        {
-            DEBUG(MODULE_NETWORK, "HTTP/2 was used.")
-        }
-
-        if (reply->error() != QNetworkReply::NoError)
-        {
-            QString error = QMetaEnum::fromType<QNetworkReply::NetworkError>().key(reply->error());
-            LOG(MODULE_NETWORK, "Network request error string: " + error)
-            QByteArray empty;
-            emit httpRequestFinished(empty);
-        }
-        else
-        {
-            emit httpRequestFinished(this->data);
-        }
-    }
-
-    void QvHttpRequestHelper::onReadyRead()
-    {
-        DEBUG(MODULE_NETWORK, "A request is now ready read")
-        this->data += reply->readAll();
-    }
-} // namespace Qv2ray::common
+} // namespace Qv2ray::common::network

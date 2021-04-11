@@ -152,6 +152,12 @@
          </item>
          <item row="0" column="1">
           <widget class="QLabel" name="groupLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="cursor">
             <cursorShape>IBeamCursor</cursorShape>
            </property>
@@ -175,6 +181,12 @@
          </item>
          <item row="1" column="1">
           <widget class="QLabel" name="protocolLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="cursor">
             <cursorShape>IBeamCursor</cursorShape>
            </property>
@@ -198,6 +210,12 @@
          </item>
          <item row="2" column="1">
           <widget class="QLabel" name="addressLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="cursor">
             <cursorShape>IBeamCursor</cursorShape>
            </property>
@@ -221,6 +239,12 @@
          </item>
          <item row="3" column="1">
           <widget class="QLabel" name="portLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="cursor">
             <cursorShape>IBeamCursor</cursorShape>
            </property>
@@ -296,7 +320,7 @@
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../../resources.qrc">:/assets/icons/qv2ray.ico</pixmap>
+             <pixmap resource="../../../resources.qrc">:/assets/icons/qv2ray.png</pixmap>
             </property>
             <property name="scaledContents">
              <bool>true</bool>
@@ -404,7 +428,11 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="groupSubsLinkTxt"/>
+        <widget class="QLineEdit" name="groupSubsLinkTxt">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
